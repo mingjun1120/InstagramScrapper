@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 from Password import my_username, my_pwd
 import time
-
+import os
 
 def login(page):
     page.fill(selector="input[name=username]", value=my_username)  # Fill in the instagram username field
@@ -37,7 +37,7 @@ def scroll(page, posts):
             # Get the href attribute of the anchor
             href = anchor.get_attribute(name="href")
             # Append the href to the list
-            posts.append(href)
+            posts.append(f"https://www.instagram.com{href}")
 
     # Scroll down the page
     page.evaluate(
@@ -78,11 +78,6 @@ def scroll(page, posts):
             prev_height = curr_height
             time.sleep(8)
 
-            # Wait for the page to load all the posts and then scrape the posts links
-            page.wait_for_selector("div.EZdmt ~ div > div > div.Nnq7C.weEfm a")
-            anchors = page.query_selector_all("div.EZdmt ~ div > div > div.Nnq7C.weEfm a")
-            store_post_links(anchors)
-
         elif prev_height == curr_height:
             page.evaluate('clearInterval(intervalID)')
             break
@@ -96,6 +91,19 @@ def scrap_posts_links(page, posts):
     scroll(page, posts)
 
 
+def store_posts_url(posts):
+    # If the text file exists, clear the contents of the file
+    if os.path.isfile("post_url.txt"):
+        open('post_url.txt', 'w').close()
+
+    # Store the post links into a text file
+    with open('post_url.txt', 'a') as f:
+        for post in posts:
+            if type(post) is str:
+                f.write(post)
+                f.write('\n')
+
+
 def run(p):
     browser = p.chromium.launch(headless=False, slow_mo=50)
     page = browser.new_page()
@@ -104,8 +112,7 @@ def run(p):
     login(page)  # Login to instagram
     hashtag_search(page)  # Search for the hashtag
 
-    # Create a list variable to store the post links
-    posts = []
+    posts = []  # Create a list variable to store the post links
 
     scrap_posts_links(page, posts)  # Scrap the post links
 
@@ -117,6 +124,8 @@ def run(p):
     print(f"Total posts: {len(posts)}\n")
     for index, post in enumerate(posts):
         print(f'{index + 1}: {post}')
+
+    store_posts_url(posts)
 
 
 with sync_playwright() as playwright:
