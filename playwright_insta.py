@@ -3,6 +3,7 @@ from Password import my_username, my_pwd
 import time
 import os
 
+
 def login(page):
     page.fill(selector="input[name=username]", value=my_username)  # Fill in the instagram username field
     page.fill(selector="input[name=password]", value=my_pwd)  # Fill in the instagram password field
