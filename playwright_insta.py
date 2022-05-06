@@ -7,8 +7,8 @@ import os
 
 def login(page):
     if page.wait_for_selector("//input[@name='username']") is not None:
-        page.fill(selector="input[name=username]", value=my_username)  # Fill in the instagram username field
-        page.fill(selector="input[name=password]", value=my_pwd)  # Fill in the instagram password field
+        page.fill(selector="input[name=username]", value=my_username)  # Fill in the instagram username field. Replace "my_username" with your own username
+        page.fill(selector="input[name=password]", value=my_pwd)  # Fill in the instagram password field. Replace "my_pwd" with your own password
         page.click(selector="button[type=submit]")  # Click the login button
 
         # Choose "Not Now" button
@@ -49,7 +49,7 @@ def scroll(page, posts):
         var intervalID = setInterval(function () {
             var scrollingElement = (document.scrollingElement || document.body);
             scrollingElement.scrollTop = scrollingElement.scrollHeight;
-        }, 2000);
+        }, 1500);
         """
     )
 
@@ -73,7 +73,7 @@ def scroll(page, posts):
     prev_height = None
     while True:
         # Wait for the page to load all the posts and then scrape the posts links
-        page.wait_for_selector("div.EZdmt ~ div > div > div.Nnq7C.weEfm a")
+        page.wait_for_selector("div.EZdmt ~ div > div > div.Nnq7C.weEfm a")  # This CSS selector will find all the newest posts in order from most recent to oldest
         anchors = page.query_selector_all("div.EZdmt ~ div > div > div.Nnq7C.weEfm a")
         store_post_links(anchors)
 
@@ -118,7 +118,7 @@ def scrap_post_info(context, posts, count, row_list):
         elif "Liked by" in new_page.query_selector(
                 selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text():
             total_likes = 2
-        elif "" in new_page.query_selector(
+        elif "" == new_page.query_selector(
                 selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text():
             total_likes = 0
         elif new_page.query_selector(
@@ -133,11 +133,17 @@ def scrap_post_info(context, posts, count, row_list):
         total_likes = 0
 
     # Get the post's posted date
-    post_upload_date = new_page.query_selector(selector="time._1o9PC").get_attribute(name="datetime")[:10]
+    new_page.wait_for_selector(selector="time._1o9PC")
+    if new_page.query_selector(selector="time._1o9PC") is not None:
+        post_upload_date = new_page.query_selector(selector="time._1o9PC").get_attribute(name="datetime")[:10]
+    else:
+        post_upload_date = None
 
+    # Append the post's info as a list into the list variable row_list
     row_list.append([post_url, username, total_likes, post_upload_date])
 
-    new_page.close()  # Close the tab
+    # Close the tab
+    new_page.close()
 
 
 def remove_duplicates(posts):
@@ -145,6 +151,17 @@ def remove_duplicates(posts):
         # Remove duplicate links
         posts = list(dict.fromkeys(posts))
     return posts
+
+
+def store_in_csv(row_list):
+    # If the text file exists, clear the contents of the file
+    if os.path.isfile("topupshopeepay.csv"):
+        open('topupshopeepay.csv', 'w').close()
+
+    # Store the results in the csv file
+    with open('topupshopeepay.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(row_list)
 
 
 def run(p):
@@ -172,18 +189,21 @@ def run(p):
     print("|                      START SCRAPING EACH POST                      |")
     print("+--------------------------------------------------------------------+")
     row_list = [['Post URL', 'Username', 'Total Likes', 'Post Upload Date']]
-    for count, post in enumerate(posts, start=0):
-        time.sleep(1)
-        scrap_post_info(postListContext, posts, count, row_list)
+    for count, post in enumerate(posts):
+        '''
+        Use these 2 lines of code (Line 197-198) to scrape every post. 
+        Otherwise, you can use the the codes (Line 200-204) to scrape top 100 most recent posts.
+        '''
+        # time.sleep(1)
+        # scrap_post_info(postListContext, posts, count, row_list)
 
-    # If the text file exists, clear the contents of the file
-    if os.path.isfile("topupshopeepay.csv"):
-        open('topupshopeepay.csv', 'w').close()
+        if count < 100:
+            time.sleep(1)
+            scrap_post_info(postListContext, posts, count, row_list)
+        else:
+            break
 
-    # Store the results in the csv file
-    with open('topupshopeepay.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerows(row_list)
+    store_in_csv(row_list)
 
 
 with sync_playwright() as playwright:
