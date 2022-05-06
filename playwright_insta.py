@@ -1,6 +1,5 @@
 from playwright.sync_api import sync_playwright
 from Password import my_username, my_pwd
-import playwright
 import time
 import csv
 import os
