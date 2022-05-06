@@ -5,3 +5,4 @@
 5. https://scrapingant.com/blog/scrape-dynamic-website-with-python
 6. https://www.w3schools.com/cssref/css_selectors.asp
 7. https://python.plainenglish.io/understanding-browser-tabs-using-python-and-playwright-d81adcad536e
+8. https://stackoverflow.com/questions/68266451/navigating-to-url-waiting-until-load-python-playright-issue

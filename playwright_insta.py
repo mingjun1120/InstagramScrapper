@@ -1,7 +1,9 @@
 from playwright.sync_api import sync_playwright
 from Password import my_username, my_pwd
+import playwright
 import time
 import csv
+import os
 
 
 def login(page):
@@ -96,7 +98,7 @@ def scrap_posts_links(page, posts):
 
 def scrap_post_info(context, posts, count, row_list):
     new_page = context.new_page()  # Create a new tab
-    new_page.goto(posts[count], timeout=9000)  # Go to the post link
+    new_page.goto(posts[count], timeout=0)  # Go to the post link
     new_page.wait_for_load_state()  # Wait for the page to load
 
     print(f"Scraping post {count + 1} of {len(posts)}: {new_page.url}")
@@ -109,22 +111,27 @@ def scrap_post_info(context, posts, count, row_list):
         username = new_page.query_selector(selector="header.Ppjfr span > a").inner_text()
 
     # Get the post's total likes
-    total_likes = 0
+    total_likes = None
     if new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll") is not None:
-        if ("Be the first to" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text()) or ("" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text()):
-            total_likes = total_likes
-        elif "Liked by" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text():
+        if "Be the first to" in new_page.query_selector(
+                selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text():
+            total_likes = 0
+        elif "Liked by" in new_page.query_selector(
+                selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text():
             total_likes = 2
-        elif new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div").inner_text() == "1 like":
+        elif "" in new_page.query_selector(
+                selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text():
+            total_likes = 0
+        elif new_page.query_selector(
+                selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div").inner_text() == "1 like":
             total_likes = 1
         else:
-            if "likes" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div").inner_text():
-                total_likes = new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div span").inner_text()
+            if "likes" in new_page.query_selector(
+                    selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div").inner_text():
+                total_likes = new_page.query_selector(
+                    selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div span").inner_text()
     else:
         total_likes = 0
-
-    if total_likes != "" and str(total_likes).isdigit():
-        total_likes = int(total_likes)
 
     # Get the post's posted date
     post_upload_date = new_page.query_selector(selector="time._1o9PC").get_attribute(name="datetime")[:10]
@@ -162,12 +169,17 @@ def run(p):
     for index, post in enumerate(posts):
         print(f'{index + 1}: {post}')
 
-    print("\n                     START SCRAPING EACH POST                     ")
-    print("==================================================================")
+    print("\n+--------------------------------------------------------------------+")
+    print("|                      START SCRAPING EACH POST                      |")
+    print("+--------------------------------------------------------------------+")
     row_list = [['Post URL', 'Username', 'Total Likes', 'Post Upload Date']]
     for count, post in enumerate(posts, start=0):
         time.sleep(1)
         scrap_post_info(postListContext, posts, count, row_list)
+
+    # If the text file exists, clear the contents of the file
+    if os.path.isfile("topupshopeepay.csv"):
+        open('topupshopeepay.csv', 'w').close()
 
     # Store the results in the csv file
     with open('topupshopeepay.csv', 'w', newline='') as file:
