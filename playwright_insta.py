@@ -1,20 +1,21 @@
 from playwright.sync_api import sync_playwright
 from Password import my_username, my_pwd
 import time
-import os
+import csv
 
 
 def login(page):
-    page.fill(selector="input[name=username]", value=my_username)  # Fill in the instagram username field
-    page.fill(selector="input[name=password]", value=my_pwd)  # Fill in the instagram password field
-    page.click(selector="button[type=submit]")  # Click the login button
+    if page.wait_for_selector("//input[@name='username']") is not None:
+        page.fill(selector="input[name=username]", value=my_username)  # Fill in the instagram username field
+        page.fill(selector="input[name=password]", value=my_pwd)  # Fill in the instagram password field
+        page.click(selector="button[type=submit]")  # Click the login button
 
-    # Choose "Not Now" button
-    '''
-    You might get 2 pop-up alerts. Please adjust the codes below accordingly
-    '''
-    page.wait_for_selector('//button[contains(text(), "Not Now")]').click()
-    page.wait_for_selector('//button[contains(text(), "Not Now")]').click()
+        # Choose "Not Now" button
+        '''
+        You might get 2 pop-up alerts. Please adjust the codes below accordingly
+        '''
+        page.wait_for_selector('//button[contains(text(), "Not Now")]').click()
+        page.wait_for_selector('//button[contains(text(), "Not Now")]').click()
 
 
 def hashtag_search(page):
@@ -37,8 +38,9 @@ def scroll(page, posts):
         for anchor in anchors_list:
             # Get the href attribute of the anchor
             href = anchor.get_attribute(name="href")
+            href = f"https://www.instagram.com{href}"
             # Append the href to the list
-            posts.append(f"https://www.instagram.com{href}")
+            posts.append(href)
 
     # Scroll down the page
     page.evaluate(
@@ -89,25 +91,60 @@ def scroll(page, posts):
 
 
 def scrap_posts_links(page, posts):
-    scroll(page, posts)
+    scroll(page, posts)  # Scroll down the page and scrape each post link at the same time
 
 
-def store_posts_url(posts):
-    # If the text file exists, clear the contents of the file
-    if os.path.isfile("post_url.txt"):
-        open('post_url.txt', 'w').close()
+def scrap_post_info(context, posts, count, row_list):
+    new_page = context.new_page()  # Create a new tab
+    new_page.goto(posts[count], timeout=9000)  # Go to the post link
+    new_page.wait_for_load_state()  # Wait for the page to load
 
-    # Store the post links into a text file
-    with open('post_url.txt', 'a') as f:
-        for post in posts:
-            if type(post) is str:
-                f.write(post)
-                f.write('\n')
+    print(f"Scraping post {count + 1} of {len(posts)}: {new_page.url}")
+    # Get the post url
+    post_url = new_page.url
+
+    # Get the username of the poster
+    username = None
+    if new_page.query_selector(selector="header.Ppjfr span > a") is not None:
+        username = new_page.query_selector(selector="header.Ppjfr span > a").inner_text()
+
+    # Get the post's total likes
+    total_likes = 0
+    if new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll") is not None:
+        if ("Be the first to" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text()) or ("" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text()):
+            total_likes = total_likes
+        elif "Liked by" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll").inner_text():
+            total_likes = 2
+        elif new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div").inner_text() == "1 like":
+            total_likes = 1
+        else:
+            if "likes" in new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div").inner_text():
+                total_likes = new_page.query_selector(selector="section.EDfFK.ygqzn div._7UhW9.xLCgt.MMzan.KV-D4.uL8Hv.T0kll div span").inner_text()
+    else:
+        total_likes = 0
+
+    if total_likes != "" and str(total_likes).isdigit():
+        total_likes = int(total_likes)
+
+    # Get the post's posted date
+    post_upload_date = new_page.query_selector(selector="time._1o9PC").get_attribute(name="datetime")[:10]
+
+    row_list.append([post_url, username, total_likes, post_upload_date])
+
+    new_page.close()  # Close the tab
+
+
+def remove_duplicates(posts):
+    if len(posts) != len(set(posts)):
+        # Remove duplicate links
+        posts = list(dict.fromkeys(posts))
+    return posts
 
 
 def run(p):
     browser = p.chromium.launch(headless=False, slow_mo=50)
-    page = browser.new_page()
+    postListContext = browser.new_context()
+    page = postListContext.new_page()
     page.goto("https://www.instagram.com/")  # Open the instagram webpage
 
     login(page)  # Login to instagram
@@ -117,16 +154,25 @@ def run(p):
 
     scrap_posts_links(page, posts)  # Scrap the post links
 
-    if len(posts) != len(set(posts)):
-        # Remove duplicate links
-        posts = list(dict.fromkeys(posts))
+    # Remove duplicates in list
+    posts = remove_duplicates(posts)
 
     # Print the total posts that have been collected and the list of posts links
     print(f"Total posts: {len(posts)}\n")
     for index, post in enumerate(posts):
         print(f'{index + 1}: {post}')
 
-    store_posts_url(posts)
+    print("\n                     START SCRAPING EACH POST                     ")
+    print("==================================================================")
+    row_list = [['Post URL', 'Username', 'Total Likes', 'Post Upload Date']]
+    for count, post in enumerate(posts, start=0):
+        time.sleep(1)
+        scrap_post_info(postListContext, posts, count, row_list)
+
+    # Store the results in the csv file
+    with open('topupshopeepay.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(row_list)
 
 
 with sync_playwright() as playwright:

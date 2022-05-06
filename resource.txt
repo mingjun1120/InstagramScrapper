@@ -1,2 +1,7 @@
 1. https://stackoverflow.com/questions/20986631/how-can-i-scroll-a-web-page-using-selenium-webdriver-in-python
 2. https://stackoverflow.com/questions/69183922/playwright-auto-scroll-to-bottom-of-infinite-scroll-page
+3. https://www.programiz.com/python-programming/writing-csv-files
+4. https://playwright.dev/python/docs/api/class-locator#locator-inner-text
+5. https://scrapingant.com/blog/scrape-dynamic-website-with-python
+6. https://www.w3schools.com/cssref/css_selectors.asp
+7. https://python.plainenglish.io/understanding-browser-tabs-using-python-and-playwright-d81adcad536e
