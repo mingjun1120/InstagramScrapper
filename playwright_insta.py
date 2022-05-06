@@ -6,7 +6,7 @@ import os
 
 
 def login(page):
-    if page.wait_for_selector("//input[@name='username']") is not None:
+    if page.wait_for_selector("//input[@name='username']", timeout=0) is not None:
         page.fill(selector="input[name=username]", value=my_username)  # Fill in the instagram username field. Replace "my_username" with your own username
         page.fill(selector="input[name=password]", value=my_pwd)  # Fill in the instagram password field. Replace "my_pwd" with your own password
         page.click(selector="button[type=submit]")  # Click the login button
@@ -21,14 +21,14 @@ def login(page):
 
 def hashtag_search(page):
     # Target the search input field
-    search_box = page.wait_for_selector("//input[@placeholder='Search']")
+    search_box = page.wait_for_selector("//input[@placeholder='Search']", timeout=0)
 
     # Search for the hashtag
     hashtag = "#topupshopeepay"
     search_box.fill(value=hashtag)
 
     # FIXING THE DOUBLE ENTER
-    my_link = page.wait_for_selector("//a[contains(@href, '/" + hashtag[1:] + "/')]")
+    my_link = page.wait_for_selector("//a[contains(@href, '/" + hashtag[1:] + "/')]", timeout=0)
     my_link.click()
     time.sleep(4)
 
@@ -73,7 +73,7 @@ def scroll(page, posts):
     prev_height = None
     while True:
         # Wait for the page to load all the posts and then scrape the posts links
-        page.wait_for_selector("div.EZdmt ~ div > div > div.Nnq7C.weEfm a")  # This CSS selector will find all the newest posts in order from most recent to oldest
+        page.wait_for_selector("div.EZdmt ~ div > div > div.Nnq7C.weEfm a", timeout=0)  # This CSS selector will find all the newest posts in order from most recent to oldest
         anchors = page.query_selector_all("div.EZdmt ~ div > div > div.Nnq7C.weEfm a")
         store_post_links(anchors)
 
@@ -133,7 +133,7 @@ def scrap_post_info(context, posts, count, row_list):
         total_likes = 0
 
     # Get the post's posted date
-    new_page.wait_for_selector(selector="time._1o9PC")
+    new_page.wait_for_selector(selector="time._1o9PC", timeout=0)
     if new_page.query_selector(selector="time._1o9PC") is not None:
         post_upload_date = new_page.query_selector(selector="time._1o9PC").get_attribute(name="datetime")[:10]
     else:
@@ -192,16 +192,16 @@ def run(p):
     for count, post in enumerate(posts):
         '''
         Use these 2 lines of code (Line 197-198) to scrape every post. 
-        Otherwise, you can use the the codes (Line 200-204) to scrape top 100 most recent posts.
+        Otherwise, you can use the codes (Line 200-204) to scrape the top 100 most recent posts.
         '''
-        # time.sleep(1)
-        # scrap_post_info(postListContext, posts, count, row_list)
+        time.sleep(1)
+        scrap_post_info(postListContext, posts, count, row_list)
 
-        if count < 100:
-            time.sleep(1)
-            scrap_post_info(postListContext, posts, count, row_list)
-        else:
-            break
+        # if count < 100:
+        #     time.sleep(1)
+        #     scrap_post_info(postListContext, posts, count, row_list)
+        # else:
+        #     break
 
     store_in_csv(row_list)
 
