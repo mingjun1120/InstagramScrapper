@@ -142,4 +142,4 @@ cython_debug/
 /.instagramy_cache/
 /test.py
 !/chromedriver.exe
-/selenium_insta.py
+!/selenium_insta.py
