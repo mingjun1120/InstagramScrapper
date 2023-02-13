@@ -1,0 +1,30 @@
+import scrapy
+from scrapy_playwright.driver import PlaywrightDriver
+
+class InstagramSpider(scrapy.Spider):
+    name = "instagram"
+    start_urls = ['https://www.instagram.com/']
+
+    def __init__(self):
+        self.driver = PlaywrightDriver()
+
+    def parse(self, response):
+        with self.driver.context(browser_type='chromium'):
+            self.driver.get(response.url)
+
+            self.login_instagram()
+
+            # Scrape data from Instagram
+            # Add your scraping logic here
+
+        self.driver.close()
+
+    def login_instagram(self):
+        # Login to Instagram
+        username_input = self.driver.find_element_by_name('username')
+        password_input = self.driver.find_element_by_name('password')
+        submit_button = self.driver.find_element_by_css_selector('button[type="submit"]')
+
+        username_input.send_keys("your_username")
+        password_input.send_keys("your_password")
+        submit_button.click()
